@@ -1,49 +1,57 @@
-import type { StoredAnalysis, AnalysisInput, JobAnalysis } from "@/types/analysis"
+import type {
+  StoredAnalysis,
+  AnalysisInput,
+  JobAnalysis,
+} from "@/types/analysis";
 
 class AnalysisStorageService {
-  private readonly STORAGE_KEY = "jobmatch:analyses"
-  private readonly VERSION = 1
+  private readonly STORAGE_KEY = "jobmatch:analyses";
+  private readonly VERSION = 1;
 
   // In-memory cache
-  private cache: Map<string, StoredAnalysis> = new Map()
+  private cache: Map<string, StoredAnalysis> = new Map();
 
   // Initialize the service
   constructor() {
-    this.loadFromLocalStorage()
+    this.loadFromLocalStorage();
   }
 
   // Load analyses from localStorage into cache
   private loadFromLocalStorage(): void {
     try {
-      const stored = localStorage.getItem(this.STORAGE_KEY)
+      const stored = localStorage.getItem(this.STORAGE_KEY);
       if (stored) {
-        const analyses: StoredAnalysis[] = JSON.parse(stored)
+        const analyses: StoredAnalysis[] = JSON.parse(stored);
         analyses.forEach((analysis) => {
-          this.cache.set(analysis.id, analysis)
-        })
+          this.cache.set(analysis.id, analysis);
+        });
       }
     } catch (error) {
-      console.error("Error loading analyses from localStorage:", error)
+      console.error("Error loading analyses from localStorage:", error);
     }
   }
 
   // Save cache to localStorage
   private saveToLocalStorage(): void {
     try {
-      const analyses = Array.from(this.cache.values())
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(analyses))
+      const analyses = Array.from(this.cache.values());
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(analyses));
     } catch (error) {
-      console.error("Error saving analyses to localStorage:", error)
+      console.error("Error saving analyses to localStorage:", error);
     }
   }
 
   // Generate a unique ID for new analyses
   private generateId(): string {
-    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
 
   // Create a new analysis
-  async createAnalysis(userId: string, input: AnalysisInput, analysis: JobAnalysis): Promise<StoredAnalysis> {
+  async createAnalysis(
+    userId: string,
+    input: AnalysisInput,
+    analysis: JobAnalysis
+  ): Promise<StoredAnalysis> {
     const storedAnalysis: StoredAnalysis = {
       ...analysis,
       id: this.generateId(),
@@ -55,41 +63,44 @@ class AnalysisStorageService {
         lastModified: new Date().toISOString(),
         createdAt: new Date().toISOString(),
       },
-    }
+    };
 
-    this.cache.set(storedAnalysis.id, storedAnalysis)
-    this.saveToLocalStorage()
+    this.cache.set(storedAnalysis.id, storedAnalysis);
+    this.saveToLocalStorage();
 
     // If you have a backend API, you would also save there
     try {
-      await this.syncWithServer(storedAnalysis)
+      await this.syncWithServer(storedAnalysis);
     } catch (error) {
-      console.error("Error syncing with server:", error)
+      console.error("Error syncing with server:", error);
     }
 
-    return storedAnalysis
+    return storedAnalysis;
   }
 
   // Get all analyses for a user
   getAnalyses(userId: string): StoredAnalysis[] {
     return Array.from(this.cache.values())
       .filter((analysis) => analysis.userId === userId)
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
   }
 
   // Get a specific analysis
   getAnalysis(id: string): StoredAnalysis | undefined {
-    return this.cache.get(id)
+    return this.cache.get(id);
   }
 
   // Update an existing analysis
   async updateAnalysis(
     id: string,
     input: Partial<AnalysisInput>,
-    analysis: Partial<JobAnalysis>,
+    analysis: Partial<JobAnalysis>
   ): Promise<StoredAnalysis | undefined> {
-    const existing = this.cache.get(id)
-    if (!existing) return undefined
+    const existing = this.cache.get(id);
+    if (!existing) return undefined;
 
     const updated: StoredAnalysis = {
       ...existing,
@@ -102,57 +113,57 @@ class AnalysisStorageService {
         ...existing.metadata,
         lastModified: new Date().toISOString(),
       },
-    }
+    };
 
-    this.cache.set(id, updated)
-    this.saveToLocalStorage()
+    this.cache.set(id, updated);
+    this.saveToLocalStorage();
 
     // Sync with server
     try {
-      await this.syncWithServer(updated)
+      await this.syncWithServer(updated);
     } catch (error) {
-      console.error("Error syncing with server:", error)
+      console.error("Error syncing with server:", error);
     }
 
-    return updated
+    return updated;
   }
 
   // Delete an analysis
   async deleteAnalysis(id: string): Promise<boolean> {
-    const deleted = this.cache.delete(id)
+    const deleted = this.cache.delete(id);
     if (deleted) {
-      this.saveToLocalStorage()
+      this.saveToLocalStorage();
 
       // Sync deletion with server
       try {
-        await this.deleteFromServer(id)
+        await this.deleteFromServer(id);
       } catch (error) {
-        console.error("Error deleting from server:", error)
+        console.error("Error deleting from server:", error);
       }
     }
-    return deleted
+    return deleted;
   }
 
   // Export analyses to JSON
   exportAnalyses(userId: string): string {
-    const analyses = this.getAnalyses(userId)
-    return JSON.stringify(analyses, null, 2)
+    const analyses = this.getAnalyses(userId);
+    return JSON.stringify(analyses, null, 2);
   }
 
   // Import analyses from JSON
   importAnalyses(userId: string, json: string): boolean {
     try {
-      const analyses: StoredAnalysis[] = JSON.parse(json)
+      const analyses: StoredAnalysis[] = JSON.parse(json);
       analyses.forEach((analysis) => {
         if (analysis.userId === userId) {
-          this.cache.set(analysis.id, analysis)
+          this.cache.set(analysis.id, analysis);
         }
-      })
-      this.saveToLocalStorage()
-      return true
+      });
+      this.saveToLocalStorage();
+      return true;
     } catch (error) {
-      console.error("Error importing analyses:", error)
-      return false
+      console.error("Error importing analyses:", error);
+      return false;
     }
   }
 
@@ -178,5 +189,4 @@ class AnalysisStorageService {
 }
 
 // Create a singleton instance
-export const analysisStorage = new AnalysisStorageService()
-
+export const analysisStorage = new AnalysisStorageService();
