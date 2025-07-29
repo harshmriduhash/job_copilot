@@ -1,54 +1,67 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useCallback } from "react"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { Loader2, MapPin, Globe } from "lucide-react"
-import type { JobMatch } from "@/app/actions/jobs"
-import { searchJobs, matchJobWithDescription } from "@/app/actions/jobs"
+import { useState, useEffect, useCallback } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Loader2, MapPin, Globe } from "lucide-react";
+import type { JobMatch } from "@/app/actions/jobs";
+import { searchJobs, matchJobWithDescription } from "@/app/actions/jobs";
 
 interface JobMatchesProps {
-  jobDescription: string
+  jobDescription: string;
 }
 
 export function JobMatches({ jobDescription }: JobMatchesProps) {
-  const [matches, setMatches] = useState<JobMatch[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [matches, setMatches] = useState<JobMatch[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const loadMatches = useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true);
+    setError(null);
 
     try {
       // First, fetch all jobs
-      const result = await searchJobs()
+      const result = await searchJobs();
 
       if (!result.success || !result.jobs) {
-        throw new Error(result.error || "Failed to fetch jobs")
+        throw new Error(result.error || "Failed to fetch jobs");
       }
 
       // Then, analyze each job
-      const matchPromises = result.jobs.map((job) => matchJobWithDescription(job, jobDescription))
-      const jobMatches = (await Promise.all(matchPromises)).filter(Boolean) as JobMatch[]
+      const matchPromises = result.jobs.map((job) =>
+        matchJobWithDescription(job, jobDescription)
+      );
+      const jobMatches = (await Promise.all(matchPromises)).filter(
+        Boolean
+      ) as JobMatch[];
 
       // Sort by match score
-      jobMatches.sort((a, b) => b.matchScore - a.matchScore)
+      jobMatches.sort((a, b) => b.matchScore - a.matchScore);
 
-      setMatches(jobMatches)
+      setMatches(jobMatches);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load job matches")
-      console.error("Error loading matches:", err)
+      setError(
+        err instanceof Error ? err.message : "Failed to load job matches"
+      );
+      console.error("Error loading matches:", err);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [jobDescription])
+  }, [jobDescription]);
 
   useEffect(() => {
-    loadMatches()
-  }, [loadMatches])
+    loadMatches();
+  }, [loadMatches]);
 
   return (
     <div className="space-y-6">
@@ -71,7 +84,9 @@ export function JobMatches({ jobDescription }: JobMatchesProps) {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : error ? (
-        <div className="p-4 text-sm bg-destructive/10 text-destructive rounded-md">{error}</div>
+        <div className="p-4 text-sm bg-destructive/10 text-destructive rounded-md">
+          {error}
+        </div>
       ) : matches.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center">
@@ -85,9 +100,7 @@ export function JobMatches({ jobDescription }: JobMatchesProps) {
               <div
                 className="absolute inset-0 opacity-10"
                 style={{
-                  background: `linear-gradient(90deg, hsl(var(--primary)) ${job.matchScore}%, transparent ${
-                    job.matchScore
-                  }%)`,
+                  background: `linear-gradient(90deg, hsl(var(--primary)) ${job.matchScore}%, transparent ${job.matchScore}%)`,
                 }}
               />
               <CardHeader>
@@ -120,10 +133,16 @@ export function JobMatches({ jobDescription }: JobMatchesProps) {
 
                   <div className="space-y-2">
                     <div>
-                      <h4 className="text-sm font-medium mb-1">Matching Skills</h4>
+                      <h4 className="text-sm font-medium mb-1">
+                        Matching Skills
+                      </h4>
                       <div className="flex flex-wrap gap-1">
                         {job.matchingSkills.map((skill, index) => (
-                          <Badge key={index} variant="outline" className="bg-primary/10">
+                          <Badge
+                            key={index}
+                            variant="outline"
+                            className="bg-primary/10"
+                          >
                             {skill}
                           </Badge>
                         ))}
@@ -131,10 +150,16 @@ export function JobMatches({ jobDescription }: JobMatchesProps) {
                     </div>
 
                     <div>
-                      <h4 className="text-sm font-medium mb-1">Missing Skills</h4>
+                      <h4 className="text-sm font-medium mb-1">
+                        Missing Skills
+                      </h4>
                       <div className="flex flex-wrap gap-1">
                         {job.missingSkills.map((skill, index) => (
-                          <Badge key={index} variant="outline" className="bg-destructive/10">
+                          <Badge
+                            key={index}
+                            variant="outline"
+                            className="bg-destructive/10"
+                          >
                             {skill}
                           </Badge>
                         ))}
@@ -158,6 +183,5 @@ export function JobMatches({ jobDescription }: JobMatchesProps) {
         </div>
       )}
     </div>
-  )
+  );
 }
-
