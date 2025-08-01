@@ -14,5 +14,4 @@ export const MUIColors = {
   success: {
     main: "#4CAF50",
   },
-}
-
+};
